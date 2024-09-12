@@ -1,0 +1,101 @@
+import openpyxl
+from pprint import pprint as pp
+import checkin
+import bracket
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Table, Paragraph, Spacer, TableStyle
+from reportlab.pdfgen import canvas
+
+LEVELS= ["Beginner", "Level 1", "Level 2", "Level 3", "Black Belt"],
+PHYSRINGCOLORMAP= {
+    1: "#ff0000", # red
+    2: "#ffa500", # orange
+    3: "#ffff00", # yellow
+    4: "#34a853",
+    5: "#0000ff",
+    6: "#fd2670",
+    7: "#8441be", # purpleish
+    8: "#999999",
+    9: "#000000", # black
+    10: "#b68a46",
+    11: "#f78db3",
+    12: "#6fa8dc",
+    13: "#b6d7a8",
+    14: "#b4a7d6"
+}
+DISPLAYSTYLE= "sections" # physical rings (1,2,3... or 1a, 1b, 2a, 2b, ...)
+                         # sections (ring 1 section 1, ring 1 section 2, etc.)
+
+def read_division(wb, division):
+    '''From the workbook, read the data from the division string.'''
+    ws = wb[division]
+
+    header_row = ws[1]
+    header_values = [cell.value for cell in header_row if cell.value is not None]
+
+
+    ######################
+    # read the people data
+    ######################
+    data = []
+    cur_row = 1
+    for row in ws.iter_rows(min_row=2):  # Start from the second row to skip header
+
+        if row[1].value == None:
+            break
+        row_data = dict(zip(header_values, [cell.value for cell in row]))
+        data.append(row_data)
+        cur_row += 1
+
+    ########################
+    # read the virt to phys map
+    ########################
+
+    virt_to_phys_map = dict()
+    map_row = cur_row + 1
+    found_map = False
+    for row in ws.iter_rows(min_row = cur_row):
+        if found_map and row[0].value == None:
+            break
+        
+        if found_map:
+            virt_to_phys_map[row[0].value] = row[1].value
+
+        elif row[0].value == "Ring Mapping Virtual to Physical":
+            found_map = True
+
+    return data, virt_to_phys_map
+
+
+    # pp(header_values)
+    #pp(data)
+
+
+if __name__ == "__main__":
+    wb = openpyxl.load_workbook('TA5.xlsx')
+    data, virt_to_phys_map = read_division(wb, 'Black Belt')
+
+#    pp(virt_to_phys_map)
+
+    checkin.create_checkin_list(data, "checkin_list.pdf")
+
+    teams = ["Team A", "Team B", "Team C", "Team D", "Team E", "Team F", "Team G", "Team H"]
+
+    teams = ["Team A", "Team B", "Team C", "Team D", "Team E", "Team F", "Team G"]
+
+    c = canvas.Canvas("bracket.pdf")
+    for teamnum in range(2, 17):
+
+        teams = []
+        for index in range(0, teamnum):
+            teams.append('part {}'.format(index))
+
+        
+        bracket.make_bracket(c, teams)
+
+        c.showPage()
+
+    c.save()
+
+   
