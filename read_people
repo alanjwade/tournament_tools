@@ -1,31 +1,19 @@
+'''Global functions for tournament_tools'''
+
 import openpyxl
 from pprint import pprint as pp
 import checkin
 import bracket
+import name_tags
 from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Table, Paragraph, Spacer, TableStyle
 from reportlab.pdfgen import canvas
+import re
 
-LEVELS= ["Beginner", "Level 1", "Level 2", "Level 3", "Black Belt"],
-PHYSRINGCOLORMAP= {
-    1: "#ff0000", # red
-    2: "#ffa500", # orange
-    3: "#ffff00", # yellow
-    4: "#34a853",
-    5: "#0000ff",
-    6: "#fd2670",
-    7: "#8441be", # purpleish
-    8: "#999999",
-    9: "#000000", # black
-    10: "#b68a46",
-    11: "#f78db3",
-    12: "#6fa8dc",
-    13: "#b6d7a8",
-    14: "#b4a7d6"
-}
-DISPLAYSTYLE= "sections" # physical rings (1,2,3... or 1a, 1b, 2a, 2b, ...)
-                         # sections (ring 1 section 1, ring 1 section 2, etc.)
+
 
 def read_division(wb, division):
     '''From the workbook, read the data from the division string.'''
@@ -34,7 +22,6 @@ def read_division(wb, division):
     header_row = ws[1]
     header_values = [cell.value for cell in header_row if cell.value is not None]
 
-
     ######################
     # read the people data
     ######################
@@ -42,7 +29,7 @@ def read_division(wb, division):
     cur_row = 1
     for row in ws.iter_rows(min_row=2):  # Start from the second row to skip header
 
-        if row[1].value == None:
+        if row[1].value is None:
             break
         row_data = dict(zip(header_values, [cell.value for cell in row]))
         data.append(row_data)
@@ -71,12 +58,43 @@ def read_division(wb, division):
     # pp(header_values)
     #pp(data)
 
+def get_list_of_ring_sparrers(ring, all_people):
+    '''Given the virtual ring and the big list of people,
+    return the list of sparrers in order.'''
+
+    ret_people = list()
+
+    # filter the list
+
+    ret_people = [x for x in all_people  if     x['Virtual Ring'] == ring
+                                            and x['Sparring']
+                                            and x['Sparring'].lower() != 'no']       
+
+    return ret_people                               
+
 
 if __name__ == "__main__":
+
+
     wb = openpyxl.load_workbook('TA5.xlsx')
     data, virt_to_phys_map = read_division(wb, 'Black Belt')
 
-#    pp(virt_to_phys_map)
+    virt_rings = virt_to_phys_map.keys()
+    c = canvas.Canvas("bracket.pdf")
+    for virt_ring in virt_rings:
+        sparrers = get_list_of_ring_sparrers(virt_ring, data)
+
+        if sparrers is None:
+            print('virt_ring = {}'.format(virt_ring))
+            exit()
+
+
+        bracket.make_bracket(c, sparrers, virt_ring)
+
+        c.showPage()
+
+    c.save()
+
 
     checkin.create_checkin_list(data, "checkin_list.pdf")
 
@@ -85,17 +103,17 @@ if __name__ == "__main__":
     teams = ["Team A", "Team B", "Team C", "Team D", "Team E", "Team F", "Team G"]
 
     c = canvas.Canvas("bracket.pdf")
-    for teamnum in range(2, 17):
+    # for teamnum in range(2, 17):
 
-        teams = []
-        for index in range(0, teamnum):
-            teams.append('part {}'.format(index))
+    #     teams = []
+    #     for index in range(0, teamnum):
+    #         teams.append('part {}'.format(index))
 
         
-        bracket.make_bracket(c, teams)
+    #     bracket.make_bracket(c, teams)
 
-        c.showPage()
+    #     c.showPage()
 
-    c.save()
+    # c.save()
 
-   
+    name_tags.create_name_tags("BB_nametags", data, "Black Belt", virt_to_phys_map)

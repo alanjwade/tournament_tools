@@ -14,7 +14,6 @@ def place_people(c, startpoints, people):
     people_log2_floor = people_number.bit_length() - 1
 
     # Figure out the starting round
-    
     starting_round = 5 - people_log2_ceil
 
     num_people_second_round = 2**people_log2_ceil - people_number
@@ -22,12 +21,18 @@ def place_people(c, startpoints, people):
 
     people_pos = 0
 
+    # pp(people[0]['Student First Name'])
+ 
     for match_pos in range(0, int(num_people_first_round/2)):
         (x0, y0) = startpoints[(starting_round, match_pos)][0]
         (x1, y1) = startpoints[(starting_round, match_pos)][1]
-        c.drawString(x0, y0, people[people_pos])
+        c.drawString(x0, y0,   people[people_pos]['Student First Name']
+                             + ' '
+                             + people[people_pos]['Student Last Name'])
         people_pos = people_pos + 1
-        c.drawString(x1, y1, people[people_pos])
+        c.drawString(x1, y1,   people[people_pos]['Student First Name']
+                             + ' '
+                             + people[people_pos]['Student Last Name'])
         people_pos = people_pos + 1
 
     # There are only full matches in the first round, so an even number.
@@ -50,10 +55,14 @@ def place_people(c, startpoints, people):
         (x0, y0) = startpoints[(starting_round + 1, math.floor(participant_pos / 2 ))][0]
         (x1, y1) = startpoints[(starting_round + 1, math.floor(participant_pos / 2 ))][1]
         if participant_pos % 2 == 0: # even
-            c.drawString(x0, y0, people[people_pos])
+            c.drawString(x0, y0,   people[people_pos]['Student First Name'] 
+                                 + ' '
+                                 + people[people_pos]['Student Last Name'] )
             people_pos = people_pos + 1
         else: # odd
-            c.drawString(x1, y1, people[people_pos])
+            c.drawString(x1, y1,   people[people_pos]['Student First Name'] 
+                                 + ' '
+                                 + people[people_pos]['Student Last Name'] )
             people_pos = people_pos + 1
         
 
@@ -80,8 +89,9 @@ def make_match(c, x_global_offset, y_global_offset, x_width_per_round, y_height_
     # exit()
     return ((x_left, y_bottom), (x_left, y_top))
 
-def make_bracket(c, teams):
-
+def make_bracket(c, people, virt_ring):
+    '''Make one bracket, populated with a given list of teams (people).'''
+    
     rounds = 5
     x_global_offset = 0.5 * inch
     y_global_offset = 0.5 * inch
@@ -116,4 +126,4 @@ def make_bracket(c, teams):
     # add teams
 
     # pp(startpoints)
-    place_people(c, startpoints, teams)
+    place_people(c, startpoints, people)

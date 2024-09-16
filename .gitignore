@@ -1,4 +1,4 @@
 *.pdf
-*.xlsx
+*.xlsx*
 *.png
 __pycache__
