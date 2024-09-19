@@ -23,14 +23,9 @@ def place_people(c, startpoints, people):
 
     # pp(people[0]['Student First Name'])
  
-    for match_pos in range(0, int(num_people_first_round/2)):
-        (x0, y0) = startpoints[(starting_round, match_pos)][0]
-        (x1, y1) = startpoints[(starting_round, match_pos)][1]
+    for match_pos in range(0, int(num_people_first_round)):
+        (x0, y0) = startpoints[(starting_round, match_pos)]
         c.drawString(x0, y0,   people[people_pos]['Student First Name']
-                             + ' '
-                             + people[people_pos]['Student Last Name'])
-        people_pos = people_pos + 1
-        c.drawString(x1, y1,   people[people_pos]['Student First Name']
                              + ' '
                              + people[people_pos]['Student Last Name'])
         people_pos = people_pos + 1
@@ -52,18 +47,12 @@ def place_people(c, startpoints, people):
     for participant_pos in range(starting_participant_pos_in_second_round, \
                                  starting_participant_pos_in_second_round + num_people_second_round):
     
-        (x0, y0) = startpoints[(starting_round + 1, math.floor(participant_pos / 2 ))][0]
-        (x1, y1) = startpoints[(starting_round + 1, math.floor(participant_pos / 2 ))][1]
-        if participant_pos % 2 == 0: # even
-            c.drawString(x0, y0,   people[people_pos]['Student First Name'] 
-                                 + ' '
-                                 + people[people_pos]['Student Last Name'] )
-            people_pos = people_pos + 1
-        else: # odd
-            c.drawString(x1, y1,   people[people_pos]['Student First Name'] 
-                                 + ' '
-                                 + people[people_pos]['Student Last Name'] )
-            people_pos = people_pos + 1
+        (x0, y0) = startpoints[(starting_round + 1, math.floor(participant_pos))]
+
+        c.drawString(x0, y0,   people[people_pos]['Student First Name'] 
+                                + ' '
+                                + people[people_pos]['Student Last Name'] )
+        people_pos = people_pos + 1
         
 
     
@@ -108,35 +97,31 @@ def make_bracket(c, people, virt_ring):
 
         # draw the right number of participants in this round
         lines_in_this_round = 2**(rounds-round)
-        for line in range(0, lines_in_this_round):
-            x_left = int(x_global_offset + x_width_per_round * (round-1))
-            x_right = int(x_left + x_width_per_round)
 
+        # This is the y distance between lines in the same round
+        y_height = y_height_first_round * 2**(round-1)
 
-    for round in range(1, rounds + 1):
-        if round > 0:
-            matches_in_this_round = int(2**(4-round))
-        elif round == 5:
-            matches_in_this_round = 1
-        else:
-            matches_in_this_round = int(0)
+        # This is the starting offset for this round
+        y_offset_this_round = y_height_first_round/2 * 2**(round-1)
 
-
-
-        y_height = 1/(2**round) * inch
-        x_width = 1.5 * inch
         x_offset_per_round = 1.5
         x_start_this_round = ((round-1)  * x_offset_per_round * inch) + (0.5 * inch)
 
+        for linenum in range(0, lines_in_this_round):
+            x_left = int(x_global_offset + x_width_per_round * (round-1))
+            x_right = int(x_left + x_width_per_round)
 
-        for match in range(0, matches_in_this_round):
-            x_start_this_round = ((round-1) * x_offset_per_round * inch) + (0.5 * inch)
-            x_mid_this_round = x_start_this_round + x_offset_per_round/2
-            y_mid_this_match = (0.5 * inch) + ((match+1) * y_height * 2)
-            match_startpoint = make_match(c, x_global_offset, y_global_offset, x_width_per_round, y_height_first_round, round, match)
+            y = y_global_offset + y_offset_this_round+ (linenum * y_height) 
 
-            startpoints[(round, match)] = match_startpoint
+            c.line(x_left, y, x_right, y)
 
+            if linenum %2 == 1:
+                # The top one of a match
+                c.line(x_right, y, x_right, y-y_height)
+
+            startpoints[(round, linenum)] = (x_left, y)
+
+ 
     # add teams
     # pp(startpoints)
     place_people(c, startpoints, people)
