@@ -67,8 +67,6 @@ def place_people(c, startpoints, people):
         
 
     
-    
-
 
 def make_match(c, x_global_offset, y_global_offset, x_width_per_round, y_height_first_round, round, match):
 
@@ -80,9 +78,13 @@ def make_match(c, x_global_offset, y_global_offset, x_width_per_round, y_height_
     y_bottom = int(y_global_offset + (2**(round - 1) * y_height_first_round/2) + ((match) * 2**round * y_height_first_round))
     y_top = int(y_bottom + (2**(round - 1) * y_height_first_round))
 
-    c.line(x_left, y_bottom, x_right, y_bottom)
-    c.line(x_right, y_bottom, x_right, y_top)
-    c.line(x_left, y_top, x_right, y_top)
+    if round == 5:
+        c.line(x_left, y_bottom, x_right, y_bottom)
+
+    else:
+        c.line(x_left, y_bottom, x_right, y_bottom)
+        c.line(x_right, y_bottom, x_right, y_top)
+        c.line(x_left, y_top, x_right, y_top)
 
     # c.showPage()
     # c.save()
@@ -103,10 +105,22 @@ def make_bracket(c, people, virt_ring):
     startpoints = dict()
 
     for round in range(1, rounds + 1):
+
+        # draw the right number of participants in this round
+        lines_in_this_round = 2**(rounds-round)
+        for line in range(0, lines_in_this_round):
+            x_left = int(x_global_offset + x_width_per_round * (round-1))
+            x_right = int(x_left + x_width_per_round)
+
+
+    for round in range(1, rounds + 1):
         if round > 0:
             matches_in_this_round = int(2**(4-round))
+        elif round == 5:
+            matches_in_this_round = 1
         else:
             matches_in_this_round = int(0)
+
 
 
         y_height = 1/(2**round) * inch
@@ -124,6 +138,8 @@ def make_bracket(c, people, virt_ring):
             startpoints[(round, match)] = match_startpoint
 
     # add teams
-
     # pp(startpoints)
     place_people(c, startpoints, people)
+
+def make_3rd_place_bracket(c):
+    pass

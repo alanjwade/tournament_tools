@@ -116,4 +116,4 @@ if __name__ == "__main__":
 
     # c.save()
 
-    name_tags.create_name_tags("BB_nametags", data, "Black Belt", virt_to_phys_map)
+    name_tags.create_name_tags("BB_nametags.pdf", data, "Black Belt", virt_to_phys_map)
