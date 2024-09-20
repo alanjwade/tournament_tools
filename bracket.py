@@ -6,6 +6,7 @@ from reportlab.lib import colors
 from reportlab.lib.units import inch
 import math
 from pprint import pprint as pp
+import tt_global as tt
 
 def place_people(c, startpoints, people):
     people_number = len(people)
@@ -55,32 +56,8 @@ def place_people(c, startpoints, people):
         people_pos = people_pos + 1
         
 
-    
 
-def make_match(c, x_global_offset, y_global_offset, x_width_per_round, y_height_first_round, round, match):
-
-    # Define the box
-    x_left = int(x_global_offset + x_width_per_round * (round-1))
-    x_right = int(x_left + x_width_per_round)
-
-    #            floor of the bracket  + initial y offset  * start of this one
-    y_bottom = int(y_global_offset + (2**(round - 1) * y_height_first_round/2) + ((match) * 2**round * y_height_first_round))
-    y_top = int(y_bottom + (2**(round - 1) * y_height_first_round))
-
-    if round == 5:
-        c.line(x_left, y_bottom, x_right, y_bottom)
-
-    else:
-        c.line(x_left, y_bottom, x_right, y_bottom)
-        c.line(x_right, y_bottom, x_right, y_top)
-        c.line(x_left, y_top, x_right, y_top)
-
-    # c.showPage()
-    # c.save()
-    # exit()
-    return ((x_left, y_bottom), (x_left, y_top))
-
-def make_bracket(c, people, virt_ring):
+def make_bracket(c, people, virt_ring, phys_ring, level):
     '''Make one bracket, populated with a given list of teams (people).'''
     
     rounds = 5
@@ -90,6 +67,17 @@ def make_bracket(c, people, virt_ring):
     y_height_first_round = 0.6 * inch
 
     c.drawImage("watermark.png", 0, 0, mask="auto")
+
+    c.drawString(inch, 10.5*inch, virt_ring)
+
+
+    fg, bg = tt.get_ring_colors(phys_ring)
+
+    t = Table([[level + ' ' + tt.ring_name_expanded(phys_ring)]], 2*inch)
+    t.setStyle(TableStyle([('BACKGROUND', (0,0), (0,0), bg),
+                           ('TEXTCOLOR', (0,0), (0,0), fg)]))
+    w,h = t.wrapOn(c,0,0)
+    t.drawOn(c, inch, 11*inch)
 
     startpoints = dict()
 
@@ -104,8 +92,7 @@ def make_bracket(c, people, virt_ring):
         # This is the starting offset for this round
         y_offset_this_round = y_height_first_round/2 * 2**(round-1)
 
-        x_offset_per_round = 1.5
-        x_start_this_round = ((round-1)  * x_offset_per_round * inch) + (0.5 * inch)
+        x_start_this_round = ((round-1)  * x_width_per_round) + (0.5 * inch)
 
         for linenum in range(0, lines_in_this_round):
             x_left = int(x_global_offset + x_width_per_round * (round-1))
@@ -121,6 +108,30 @@ def make_bracket(c, people, virt_ring):
 
             startpoints[(round, linenum)] = (x_left, y)
 
+    # third place bracket, same level as round 1 match 1
+
+    third_place_x = x_global_offset + (x_width_per_round * (rounds - 2))
+    third_place_y = y_global_offset
+    c.line(third_place_x, third_place_y      ,
+           third_place_x + x_width_per_round, third_place_y)
+    c.line(third_place_x                     , third_place_y + y_height_first_round,
+           third_place_x + x_width_per_round, third_place_y + y_height_first_round)
+    
+    # vertical
+    c.line(third_place_x + x_width_per_round, third_place_y + y_height_first_round,
+           third_place_x + x_width_per_round, third_place_y)
+    
+    # third place line
+    c.line(third_place_x + x_width_per_round    , third_place_y + y_height_first_round / 2,
+           third_place_x + 2 * x_width_per_round, third_place_y + y_height_first_round / 2)
+
+    c.drawString(third_place_x + x_width_per_round + .25*inch, third_place_y + y_height_first_round / 2 - .25 * inch,
+                 '3rd')
+    
+    c.drawString(startpoints[(rounds, 0)][0] + .25*inch, startpoints[(rounds, 0)][1] - .25 * inch,
+                 '1st')
+    
+    tt.create_place_table(c, 3.5*inch, 10*inch)
  
     # add teams
     # pp(startpoints)

@@ -77,7 +77,8 @@ if __name__ == "__main__":
 
 
     wb = openpyxl.load_workbook('TA5.xlsx')
-    data, virt_to_phys_map = read_division(wb, 'Black Belt')
+    level = 'Black Belt'
+    data, virt_to_phys_map = read_division(wb, level)
 
     virt_rings = virt_to_phys_map.keys()
     c = canvas.Canvas("bracket.pdf")
@@ -89,7 +90,7 @@ if __name__ == "__main__":
             exit()
 
 
-        bracket.make_bracket(c, sparrers, virt_ring)
+        bracket.make_bracket(c, sparrers, virt_ring, virt_to_phys_map[virt_ring], level)
 
         c.showPage()
 
@@ -103,6 +104,7 @@ if __name__ == "__main__":
     teams = ["Team A", "Team B", "Team C", "Team D", "Team E", "Team F", "Team G"]
 
     c = canvas.Canvas("bracket.pdf")
+    c.setTitle('brackets')
     # for teamnum in range(2, 17):
 
     #     teams = []

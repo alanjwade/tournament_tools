@@ -1,4 +1,8 @@
 import re
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+
 
 LEVELS= ["Beginner", "Level 1", "Level 2", "Level 3", "Black Belt"],
 PHYSRINGCOLORMAP= {
@@ -17,6 +21,32 @@ PHYSRINGCOLORMAP= {
     13: "#b6d7a8",
     14: "#b4a7d6"
 }
+
+def hex_to_rgb(hex_color):
+  """Converts a hex color string to an RGB tuple.
+
+  Args:
+    hex_color: A string representing the hex color, e.g., "#FF00FF".
+
+  Returns:
+    An RGB tuple (r, g, b) where r, g, and b are integers in the range 0-255.
+  """
+
+  # Remove the '#' prefix if present
+  if hex_color.startswith('#'):
+    hex_color = hex_color[1:]
+
+  # Ensure the hex color string is 6 characters long
+  if len(hex_color) != 6:
+    raise ValueError("Invalid hex color format: must be 6 characters long")
+
+  # Convert each pair of characters to an integer
+  r = int(hex_color[:2], 16)
+  g = int(hex_color[2:4], 16)
+  b = int(hex_color[4:], 16)
+
+  return (r, g, b)
+
 DISPLAYSTYLE= "sections" # physical rings (1,2,3... or 1a, 1b, 2a, 2b, ...)
                          # sections (ring 1 section 1, ring 1 section 2, etc.)
 
@@ -62,3 +92,20 @@ def ring_name_expanded(ring):
         return 'Ring {} Group {}'.format(parts[0], parts[1].upper())
     else:
         return 'Ring {}'.format(ring)
+    
+
+def create_place_table(c, x, y):
+    '''Draw a place table.'''
+
+    data = [['Final Place', 'Name'],
+            ['1st', ''],
+            ['2nd', ''],
+            ['3rd', '']]
+    
+    t = Table(data, [1*inch, 3 * inch])
+    t.setStyle(TableStyle([('ALIGN', (0,0), (-1, -1), 'RIGHT'),
+                           ('ALIGN', (1,0), (1,0), 'CENTER'),
+                           ('GRID', (-1, 1), (-1, -1), 2, colors.black)]))
+    w,h = t.wrapOn(c, 0, 0)
+    t.drawOn(c, x, y)
+
