@@ -2,7 +2,8 @@ import re
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
-
+import datetime
+import pytz
 
 LEVELS= ["Beginner", "Level 1", "Level 2", "Level 3", "Black Belt"],
 PHYSRINGCOLORMAP= {
@@ -45,7 +46,7 @@ def hex_to_rgb(hex_color):
   g = int(hex_color[2:4], 16)
   b = int(hex_color[4:], 16)
 
-  return (r, g, b)
+  return (r/255, g/255, b/255)
 
 DISPLAYSTYLE= "sections" # physical rings (1,2,3... or 1a, 1b, 2a, 2b, ...)
                          # sections (ring 1 section 1, ring 1 section 2, etc.)
@@ -109,3 +110,31 @@ def create_place_table(c, x, y):
     w,h = t.wrapOn(c, 0, 0)
     t.drawOn(c, x, y)
 
+
+
+def create_timestamp_string():
+  """Creates a timestamp string including date, hours, minutes, seconds, and timezone."""
+
+  # Get the current time in UTC
+  utc_time = datetime.datetime.utcnow()
+
+  # Get the timezone of the current location
+  timezone = pytz.timezone('America/Denver')  # Replace with your timezone
+
+  # Convert the UTC time to the local timezone
+  local_time = utc_time.astimezone(tz = timezone)
+
+#  local_time = datetime.datetime.now()
+  utc_dt = datetime.datetime.now(datetime.timezone.utc)
+  dt = utc_dt.astimezone()
+
+  # Format the timestamp string
+  timestamp_string = 'Created ' + dt.strftime('%Y-%m-%d %H:%M:%S %Z')
+
+  return timestamp_string
+
+def place_timestamp(c, x, y):
+
+    c.saveState()
+    c.drawString(x, y, create_timestamp_string())
+    c.restoreState()

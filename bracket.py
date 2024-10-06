@@ -9,12 +9,24 @@ from pprint import pprint as pp
 import tt_global as tt
 from collections import namedtuple
 
+MatchKey = namedtuple("match_key", "round, match_from_bottom")
 def place_people(c, startpoints, people, match_coord):
     people_number = len(people)
 
+    rounds = 5
+    xy_offset = int(1/8 * inch)
+
+    color_map = [
+        ['#e6f7ff', '#cceeff', '#b3e6ff', '#99ddff', '#80d4ff', '#66ccff', '#4dc3ff', '#33bbff'],
+        ['#e6fff2', '#ccffe6', '#b3ffd9', '#99ffcc'],
+        ['#fff5e6', '#ffcc80'],
+        ['#feeaea'],
+        ['#feeaea']]
+    
+
+    
     people_log2_ceil = (people_number-1).bit_length()
     people_log2_floor = people_number.bit_length() - 1
-    rounds = 5
     # Figure out the starting round
     starting_round = 5 - people_log2_ceil
     second_round = starting_round + 1
@@ -40,36 +52,144 @@ def place_people(c, startpoints, people, match_coord):
     # matches and startpoints are numbered per round, from 0, from the bottom.
     # 
 
+    def write_match_num_str(c, round, match, use_offset=True):
+        # x = match_coord[MatchKey(round=round, match_from_bottom=match)]['x_left']
+        y_mid = match_coord[(round, match)]['y_mid']
+        corner_x0 = match_coord[(round, match)]['x_left']
+        corner_y0 = match_coord[(round, match)]['y_bottom']
+        corner_y1 = match_coord[(round, match)]['y_top']
+        corner_x1 = match_coord[(round, match)]['x_right']
+        width = corner_x1 - corner_x0
+        height = corner_y1 - corner_y0
+        if 'populated_match_num' in match_coord[(round, match)]:
+            match_num = match_coord[(round, match)]['populated_match_num']
+        else:
+            match_num = None
+            
+
+        ##############################
+        # Fill in rectangles.
+        ##############################
+        if match_num:
+            r,g,b = tt.hex_to_rgb(color_map[round-1][match])
+            c.saveState()
+            c.setFillColorRGB(r, g, b, 0.7)
+            c.rect(corner_x0, corner_y0, width, height, fill=1, stroke = 0)
+            c.restoreState()
+
+        #############################
+        # populate 'Match #x' for those indicated.
+        #############################
+        if match_num:
+            c.saveState()
+            c.setFont("Helvetica", 18)
+            c.drawString(corner_x0 + xy_offset, y_mid, 'Match #{}'.format(match_num))
+            c.restoreState()
+
+
+        #############################
+        # Fill in participants.
+        #############################
+
+        if 'top_part' in match_coord[(round, match)].keys():
+            c.saveState()
+            c.setFont("Helvetica", 12)
+            if use_offset:
+                x = corner_x0 + xy_offset
+                y = corner_y1 + xy_offset
+            else:
+                x = corner_x0
+                y = corner_y1
+
+            c.drawString(x, y, match_coord[(round, match)]['top_part'])
+            c.restoreState
+        if 'bot_part' in match_coord[(round, match)].keys():
+            c.saveState()
+            if use_offset:
+                x = corner_x0 + xy_offset
+                y = corner_y0 + xy_offset
+            else:
+                x = corner_x0
+                y = corner_y0
+
+            c.drawString(x, y, match_coord[(round, match)]['bot_part'])
+            c.restoreState
+
+    def write_match_hint_str(c, round, match, win_lose_str, top_match, bot_match, use_offset=True):
+        x = match_coord[(round, match)]['x_left']
+        y_bot = match_coord[(round, match)]['y_bottom']
+        y_top = match_coord[(round, match)]['y_top']
+        c.saveState()
+        c.setFillColor(colors.lightgrey)
+        c.setFont("Helvetica", 12)
+        if use_offset:
+            x0 = x + xy_offset
+            y0 = y_bot + xy_offset
+            y1 = y_top + xy_offset
+        else:
+            x0 = x
+            y0 = y_bot
+            y1 = y_top
+            
+        c.drawString(x0, y0, win_lose_str + ' {}'.format(top_match))
+        c.drawString(x0, y1, win_lose_str + ' {}'.format(bot_match))
+        c.restoreState()
+
+  
+
+
     # 0 based
     starting_participant_pos_in_second_round = total_participant_slots_in_second_round - num_people_second_round
 
     # Start with the participants in the second round, so the first person in
     # the people list is at the top.
-    for match_pos in range(total_participant_slots_in_second_round - 1, \
+    for part_pos in range(total_participant_slots_in_second_round - 1, \
                            total_participant_slots_in_second_round - 1 - num_people_second_round, \
                            -1):
     
-        (x0, y0) = startpoints[(second_round, match_pos)]
+        (x0, y0) = startpoints[(second_round, part_pos)]
 
-        c.drawString(x0, y0,   people[people_pos]['Student First Name'] 
-                                + ' '
-                                + people[people_pos]['Student Last Name'] )
+        part_pos_int = math.floor(part_pos / 2)
+
+        if part_pos %2 == 1:
+            # This is the top one of a match
+            match_coord[(second_round, part_pos_int)]['top_part'] =   people[people_pos]['Student First Name'] \
+                                      + ' '  \
+                                      + people[people_pos]['Student Last Name']  
+        else:
+            match_coord[(second_round, part_pos_int)]['bot_part'] =   people[people_pos]['Student First Name'] \
+                                      + ' ' \
+                                      + people[people_pos]['Student Last Name'] 
+        #  c.drawString(x0 + xy_offset, y0 + xy_offset,   people[people_pos]['Student First Name'] 
+        #                         + ' '
+        #                         + people[people_pos]['Student Last Name'] )
         people_pos = people_pos + 1
         
     # Then go back a round and add the rest.
     # Here we'll discover what the first match is.
-    for match_pos in range(num_people_first_round -1, \
+    for part_pos in range(num_people_first_round -1, \
                            -1, -1):
-        (x0, y0) = startpoints[(starting_round, match_pos)]
-        c.drawString(x0, y0,   people[people_pos]['Student First Name']
-                             + ' '
-                             + people[people_pos]['Student Last Name'])
+        (x0, y0) = startpoints[(starting_round, part_pos)]
+        part_pos_int = math.floor(part_pos / 2)
+        if part_pos %2 == 1:
+            # This is the top one of a match
+            match_coord[(starting_round, part_pos_int)]['top_part'] =   people[people_pos]['Student First Name'] \
+                                      + ' '  \
+                                      + people[people_pos]['Student Last Name']  
+        else:
+            match_coord[(starting_round, part_pos_int)]['bot_part'] =   people[people_pos]['Student First Name'] \
+                                      + ' ' \
+                                      + people[people_pos]['Student Last Name'] 
+        # c.drawString(x0 + xy_offset, y0 + xy_offset,   people[people_pos]['Student First Name']
+        #                      + ' '
+        #                      + people[people_pos]['Student Last Name'])
         people_pos = people_pos + 1
 
         # This is the first match
         
 
     match_num = 1
+
 
     # place the 'match #' text. The third place match goes before the first place match,
     # so special case that.
@@ -81,26 +201,28 @@ def place_people(c, startpoints, people, match_coord):
             starting_match_num = 2**(rounds - match_str_round - 1) - 1
 
         for match_str_match in range(starting_match_num, -1, -1):
-            match_coord[(match_str_round, match_str_match)]['match str'] = 'Match {}'.format(match_num)
-            x = match_coord[(match_str_round, match_str_match)]['startx']
-            y = match_coord[(match_str_round, match_str_match)]['midy']
-            c.drawString(x, y, match_coord[(match_str_round, match_str_match)]['match str'])
+            match_coord[(match_str_round, match_str_match)]['populated_match_num'] = match_num
             match_num += 1
     
     # Handle the third place match
     if len(people) > 2:
-        match_coord[(rounds, 0)]['match str'] = 'Match {}'.format(match_num)
-        x = match_coord[(rounds, 0)]['startx']    
-        y = match_coord[(rounds, 0)]['midy']
-        c.drawString(x, y, match_coord[(rounds, 0)]['match str'])
+        match_coord[(rounds, 0)]['populated_match_num'] = match_num
+      
+        write_match_hint_str(c, rounds, 0,
+                       'Loser Match', match_num - 2, match_num - 1)
+        
         match_num += 1
 
     # Handle the first place match
-    match_coord[(rounds-1, 0)]['match str'] = 'Match {}'.format(match_num)
-    x = match_coord[(rounds-1, 0)]['startx']    
-    y = match_coord[(rounds-1, 0)]['midy']
-    c.drawString(x, y, match_coord[(rounds-1, 0)]['match str'])
-    match_num += 1
+    match_coord[(rounds-1, 0)]['populated_match_num'] = match_num
+    # write_match_num_str(c, rounds-1, 0, match_num)
+    if len(people) > 2:
+        write_match_hint_str(c, rounds-1, 0,
+                        'Winner Match', match_num - 3, match_num - 2)
+        match_num += 1
+
+    for round, match in match_coord.keys():
+        write_match_num_str(c, round, match)
 
 
 
@@ -132,7 +254,6 @@ def make_bracket(c, people, virt_ring, phys_ring, level):
     match_coord = dict()
 
     startpoints = dict()
-    MatchKey = namedtuple("match_key", "round, match_from_bottom")
 #    MatchVal = namedtuple("match_val", "startx, starty0, starty1, midy")
 
     for round in range(1, rounds + 1):
@@ -164,10 +285,11 @@ def make_bracket(c, people, virt_ring, phys_ring, level):
                 #                      starty1 = y,
                 #                      midy = y - y_offset_this_round/2)
                 
-                match_val = {"startx": x_left,
-                             "starty0": y - y_offset_this_round,
-                             "starty1": y,
-                             "midy": y - y_offset_this_round}
+                match_val = {"x_left": x_left,
+                             "x_right": x_right,
+                             "y_bottom": y - y_height,
+                             "y_top": y,
+                             "y_mid": y - y_height/2}
 
                 match_coord[MatchKey(round, math.floor(linenum / 2))] = match_val
 
@@ -197,10 +319,11 @@ def make_bracket(c, people, virt_ring, phys_ring, level):
     c.drawString(startpoints[(rounds, 0)][0] + .25*inch, startpoints[(rounds, 0)][1] - .25 * inch,
                  '1st')
     
-    match_coord[MatchKey(rounds, 0)] = {"startx": third_place_x,
-                                        "starty0":  third_place_y,
-                                        "starty1": third_place_y + y_height_first_round,
-                                        "midy" : third_place_y + int(y_height_first_round/2)}
+    match_coord[MatchKey(rounds, 0)] = {"x_left": third_place_x,
+                                        "x_right": third_place_x + x_width_per_round,
+                                        "y_bottom":  third_place_y,
+                                        "y_top": third_place_y + y_height_first_round,
+                                        "y_mid" : third_place_y + int(y_height_first_round/2)}
     # pp(match_coord)
 
 
@@ -209,6 +332,8 @@ def make_bracket(c, people, virt_ring, phys_ring, level):
     # add teams
     # pp(startpoints)
     place_people(c, startpoints, people, match_coord)
+
+    tt.place_timestamp(c, 1/4*inch, 1/4*inch)
 
 def make_3rd_place_bracket(c):
     pass
